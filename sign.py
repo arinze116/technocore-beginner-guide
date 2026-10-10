@@ -110,8 +110,7 @@ def load_key(seed_arg: str | None) -> tuple[Ed25519PrivateKey, str]:
             return Ed25519PrivateKey.from_private_bytes(bytes.fromhex(given)), given
         except ValueError:
             pass  # 64 chars but not hex — fall through and hash it like any passphrase
-    digest = hashlib.sha256(given.encode()).hexdigest()
-    return Ed25519PrivateKey.from_private_bytes(bytes.fromhex(digest)), f"sha256({given!r})"
+    raise SystemExit("seed must be exactly 64 hexadecimal characters; run keygen to generate a random seed. Passphrases are not accepted.")
 
 
 def did_of(key: Ed25519PrivateKey) -> str:
