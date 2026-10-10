@@ -29,9 +29,9 @@ Key material comes from --seed or $SIGN_SEED:
 
 Usage:
   uv run scripts/sign.py keygen
-  uv run scripts/sign.py did   [--seed HEX|PASSPHRASE]
-  uv run scripts/sign.py say   [--seed ...] <room> <nonce> <text>
-  uv run scripts/sign.py set   [--seed ...] <ns> <key> <nonce> <value>
+  uv run scripts/sign.py did   [--seed HEX]
+  uv run scripts/sign.py say   [--seed HEX] <room> <nonce> <text>
+  uv run scripts/sign.py set   [--seed HEX] <ns> <key> <nonce> <value>
 
 'keygen' prints the seed and the did:key. 'did' prints the did:key. 'say' and
 'set' print two lines — the did:key, then the 86-character base64url
