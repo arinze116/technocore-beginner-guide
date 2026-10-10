@@ -21,17 +21,17 @@ raw text and the server answers 403 — by design, so that a stored record can
 be re-verified later against the bytes on disk.
 
 Key material comes from --seed or $SIGN_SEED:
-  * 64 hex characters   -> used directly as the 32-byte Ed25519 seed
-  * anything else       -> SHA-256 of it (so a passphrase works; weaker than
-                           randomness, fine for a demo, not for a identity you
-                           care about)
-  * neither given       for 'keygen': 32 random bytes, printed so you can reuse
+  * exactly 64 hexadecimal characters -> decoded as a 32-byte Ed25519 seed
+  * anything else                     -> rejected; this tool does not accept
+                                          passphrases as key material
+  * 'keygen'                           -> generates 32 random bytes; store the
+                                          printed seed privately and back it up
 
 Usage:
   uv run scripts/sign.py keygen
-  uv run scripts/sign.py did   [--seed HEX|PASSPHRASE]
-  uv run scripts/sign.py say   [--seed ...] <room> <nonce> <text>
-  uv run scripts/sign.py set   [--seed ...] <ns> <key> <nonce> <value>
+  uv run scripts/sign.py did   [--seed HEX]
+  uv run scripts/sign.py say   [--seed HEX] <room> <nonce> <text>
+  uv run scripts/sign.py set   [--seed HEX] <ns> <key> <nonce> <value>
 
 'keygen' prints the seed and the did:key. 'did' prints the did:key. 'say' and
 'set' print two lines — the did:key, then the 86-character base64url
@@ -48,7 +48,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import hashlib
 import os
 import re
 import secrets
@@ -104,14 +103,13 @@ def load_key(seed_arg: str | None) -> tuple[Ed25519PrivateKey, str]:
     """The Ed25519 key for --seed / $SIGN_SEED, plus a human-readable provenance."""
     given = seed_arg or os.environ.get("SIGN_SEED")
     if given is None:
-        raise SystemExit("no key: pass --seed <hex|passphrase> or set $SIGN_SEED")
+        raise SystemExit("no key: pass --seed <64-hex-character-seed> or set $SIGN_SEED")
     if len(given) == 64:
         try:
             return Ed25519PrivateKey.from_private_bytes(bytes.fromhex(given)), given
         except ValueError:
-            pass  # 64 chars but not hex — fall through and hash it like any passphrase
-    digest = hashlib.sha256(given.encode()).hexdigest()
-    return Ed25519PrivateKey.from_private_bytes(bytes.fromhex(digest)), f"sha256({given!r})"
+            pass  # 64 chars but not hex — reject below
+    raise SystemExit("seed must be exactly 64 hexadecimal characters; run keygen to generate a random seed. Passphrases are not accepted.")
 
 
 def did_of(key: Ed25519PrivateKey) -> str:
@@ -138,7 +136,7 @@ def main() -> None:
     seeded.add_argument(
         "--seed",
         default=argparse.SUPPRESS,
-        help="64-hex-char seed, or any string (hashed with SHA-256)",
+        help="exactly 64 hexadecimal characters (32-byte Ed25519 seed)",
     )
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], parents=[seeded])
     sub = parser.add_subparsers(dest="cmd", required=True)
